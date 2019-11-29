@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+
+    <script src="material.js"></script>
+    <link rel="stylesheet" href="material.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <title>title</title>
+    <style>
+        /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+        #map {
+            height: 100%;
+        }
+
+        /* Optional: Makes the sample page fill the window. */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script src="https://www.google.com/jsapi"></script>
+</head>
+
+<body>
+
+    <div id="map" style="height:600px;"></div>
+
+    <div id="elevation_chart"></div>
+
+    <p id="demo"></p>
+
+
+    <script>
+
+        google.load('visualization', '1', { packages: ['columnchart'] });
+
+
+        fetch("https://apis.is/weather/forecasts/is?stations=1")
+            .then((response) => {
+                if (response.status !== 200) {
+                    console.log("Fuck" + response.status.toString());
+                    //stop everything
+                    return;
+                }
+
+                //get the data, put it in a global, forget about it, start the app
+                response.json().then((data)=>{
+                    let thing = data;
+
+                    console.log(data);
+
+                });
+            })
+
+               
+
+
+        function initMap() {
+
+            let directionsService = new google.maps.DirectionsService();
+
+            let map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 15,
+                center: { lat: 64.147582, lng: -21.932217 },
+                mapTypeId: "terrain",
+                disableDoubleClickZoom: true
+            });
+            google.maps.event.addListener(map,'click',function(event) {
+                var marker = new google.maps.Marker({
+                  position: event.latLng, 
+                  map: map, 
+                  title: event.latLng.lat()+', '+event.latLng.lng()
+                });   
+            });          
+
+            
+            let Mylocation = {lat: 64, lng: 64};
+            navigator.geolocation.getCurrentPosition((pos) => {
+                Mylocation = {lat: pos.coords.latitude, lng: pos.coords.longitude}
+                map.setCenter(Mylocation);
+                });
+            
+
+            var elevator = new google.maps.ElevationService;
+
+
+
+            function renderDirections(result) {
+                let directionsRenderer = new google.maps.DirectionsRenderer();
+                directionsRenderer.setMap(map);
+                directionsRenderer.setDirections(result);
+            }
+
+            function requestDirections(start, end) {
+                directionsService.route({
+                    origin: start,
+                    destination: end,
+                    travelMode: google.maps.DirectionsTravelMode.WALKING
+                }, function (result) {
+                    renderDirections(result);
+
+                    let firstStepStep = result.routes[0].legs[0].steps;
+                    console.log(result);
+                    
+
+
+                    let truePath = [];
+
+                    for (let i = 0; i < firstStepStep.length; i++) {
+                        const path = firstStepStep[i].path;
+
+                        path.forEach(loc => {
+                            truePath.push({ lat: loc.lat(), lng: loc.lng() })
+                        });
+
+                    }
+
+                    elevator.getElevationAlongPath({
+                        'path': truePath,
+                        'samples': 50
+                    }, plotElevation);
+
+
+                });
+            }
+
+            function plotElevation(elevations, status) {
+                var chartDiv = document.getElementById('elevation_chart');
+                if (status !== 'OK') {
+                    // Show the error code inside the chartDiv.
+                    chartDiv.innerHTML = 'Cannot show elevation: request failed because ' +
+                        status;
+                    return;
+                }
+                // Create a new chart in the elevation_chart DIV.
+                var chart = new google.visualization.ColumnChart(chartDiv);
+
+                // Extract the data from which to populate the chart.
+                // Because the samples are equidistant, the 'Sample'
+                // column here does double duty as distance along the
+                // X axis.
+                var data = new google.visualization.DataTable();
+                data.addColumn('string', 'Sample');
+                data.addColumn('number', 'Elevation');
+                for (var i = 0; i < elevations.length; i++) {
+                    data.addRow(['', elevations[i].elevation]);
+                }
+
+                // Draw the chart using the data within its DIV.
+                chart.draw(data, {
+                    height: 150,
+                    legend: 'none',
+                    titleY: 'Elevation (m)'
+                });
+            }
+
+
+            requestDirections("Eiðistorg, Reykjavík", "Frostaskjól 2, 107 Reykjavík");
+
+
+
+
+
+        }
+
+
+    </script>
+
+
+
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-tJiD9Q8vx_4uYDVUZdvvDyN5bs7NC3M&callback=initMap">
+        </script>
+</body>
+
+</html>
