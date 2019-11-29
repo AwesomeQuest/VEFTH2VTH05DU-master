@@ -63,12 +63,14 @@
 
 
         function initMap() {
+            // these are all the markers on the map, used only to 
+            let markersArray = [];
 
             let directionsService = new google.maps.DirectionsService();
 
             let map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 15,
-                center: { lat: 64.147582, lng: -21.932217 },
+                center: { lat: 64.147582, lng: -21.9352 },
                 mapTypeId: "terrain",
                 disableDoubleClickZoom: true
             });
@@ -78,15 +80,33 @@
                   map: map, 
                   title: event.latLng.lat()+', '+event.latLng.lng()
                 });   
-            });          
+                markersArray.push(marker);
 
-            
-            let Mylocation = {lat: 64, lng: 64};
+                if (markersArray.length >= 3) {
+                    map.clearOverlays();
+                }else if (markersArray.length === 2) {
+                    requestDirections(markersArray[0].position, markersArray[1].position);
+                }
+            });   
+
+
+            //creates the function clearOverlays, 
+            //used so no more than two markers can be visable at a time.
+
+            google.maps.Map.prototype.clearOverlays = function() {
+                for (var i = 0; i < markersArray.length; i++ ) {
+                    markersArray[i].setMap(null);
+                }
+                markersArray.length = 0;
+                }       
+
+            /*
+            let Mylocation = {lat: 64, lng: -21};
             navigator.geolocation.getCurrentPosition((pos) => {
                 Mylocation = {lat: pos.coords.latitude, lng: pos.coords.longitude}
                 map.setCenter(Mylocation);
                 });
-            
+            */
 
             var elevator = new google.maps.ElevationService;
 
@@ -162,7 +182,7 @@
             }
 
 
-            requestDirections("Eiðistorg, Reykjavík", "Frostaskjól 2, 107 Reykjavík");
+            //requestDirections("Eiðistorg, Reykjavík", "Frostaskjól 2, 107 Reykjavík");
 
 
 
