@@ -10,265 +10,54 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
     <title>title</title>
-    <style>
-        /* Always set the map height explicitly to define the size of the div
-       * element that contains the map. */
-        #map {
-            height: 100%;
-        }
-
-        /* Optional: Makes the sample page fill the window. */
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-    </style>
     <script src="https://www.google.com/jsapi"></script>
-    <script src="math.min.js"></script>
 </head>
 
 <body>
 
     <div id="map" style="height:600px;"></div>
 
-    <div id="elevation_chart"></div>
-
-    <p id="demo"></p>
-
     <!--
-batWattage, batVoltage, batAmpHr, effortLvl, speedUpHill, windDir, windPwr, centreLatLng
+    <div id="elevation_chart"></div>
     -->
 
-    <input type="number" id="wattage" value="250">
-    <input type="number" id="voltage" value="36">
-    <input type="number" id="amphr" value="9">
-    <input type="range" id="effortLvl" value="0">
-    <input type="number" id="speedUpHill" value="15">
-    <input type="date" id="date">
+
+    <form action="#">
+        <div class="mdl-textfield mdl-js-textfield">
+            <input value="250" class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="wattage">
+            <label class="mdl-textfield__label" for="wattage">Wattage...</label>
+            <span class="mdl-textfield__error">Input is not a number!</span>
+          </div>
+          <div class="mdl-textfield mdl-js-textfield">
+            <input value="36" class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="voltage">
+            <label class="mdl-textfield__label" for="voltage">Voltage...</label>
+            <span class="mdl-textfield__error">Input is not a number!</span>
+          </div>
+          <div class="mdl-textfield mdl-js-textfield">
+            <input value="9" class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="amphr">
+            <label class="mdl-textfield__label" for="amphr">Amp Hours...</label>
+            <span class="mdl-textfield__error">Input is not a number!</span>
+          </div>
+          <div class="mdl-textfield mdl-js-textfield">
+            <input class="mdl-slider mdl-js-slider" type="range" min="0" max="100" value="0" tabindex="0" id="effortLvl">
+            <label class="mdl-textfield__label" for="effortLvl">Effort Level...</label>
+          </div>
+          <div class="mdl-textfield mdl-js-textfield">
+            <input value="15" class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="speedUpHill">
+            <label class="mdl-textfield__label" for="wattage">Your avreage Speed Up Hill...</label>
+            <span class="mdl-textfield__error">Input is not a number!</span>
+          </div>
+          <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label mdl-cell mdl-cell--6-col">
+                <input class="mdl-textfield__input" type="date" id="date">
+                <label class="mdl-textfield__label" for="date">Date</label>
+              </div>
+      </form>
 
 
-    <script>
-        //sets date input to today by default
-        Date.prototype.toDateInputValue = (function() {
-            var local = new Date(this);
-            local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
-            return local.toJSON().slice(0,10);
-        });
-        document.getElementById('date').value = new Date().toDateInputValue();
-
-        google.load('visualization', '1', { packages: ['columnchart'] });
+    
 
 
-        fetch("https://apis.is/weather/forecasts/is?stations=1")
-            .then((response) => {
-                if (response.status !== 200) {
-                    console.log("Fuck" + response.status.toString());
-                    //stop everything
-                    return;
-                }
-
-                //get the data, put it in a global, forget about it, start the app
-                response.json().then((data)=>{
-                    let thing = data;
-
-                    console.log(data);
-
-                });
-            })
-
-               
-
-
-        function initMap() {
-            // these are all the markers on the map, used only to 
-            let markersArray = [];
-
-            let directionsService = new google.maps.DirectionsService();
-
-            let map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 15,
-                center: { lat: 64.147582, lng: -21.9352 },
-                mapTypeId: "terrain",
-                disableDoubleClickZoom: true
-            });
-            google.maps.event.addListener(map,'click',function(event) {
-                var marker = new google.maps.Marker({
-                  position: event.latLng, 
-                  map: map, 
-                  title: event.latLng.lat()+', '+event.latLng.lng()
-                });   
-                markersArray.push(marker);
-
-                if (markersArray.length >= 3) {
-                    map.clearOverlays();
-                }else if (markersArray.length === 2) {
-                    requestDirections(markersArray[0].position, markersArray[1].position);
-                }else if (markerArray.length === 1) {
-                    
-                }
-            });   
-
-
-            //creates the function clearOverlays, 
-            //used so no more than two markers can be visable at a time.
-
-            google.maps.Map.prototype.clearOverlays = function() {
-                for (var i = 0; i < markersArray.length; i++ ) {
-                    markersArray[i].setMap(null);
-                }
-                markersArray.length = 0;
-                }       
-
-            
-            let Mylocation = {lat: 64, lng: -21};
-            navigator.geolocation.getCurrentPosition((pos) => {
-                Mylocation = {lat: pos.coords.latitude, lng: pos.coords.longitude}
-                map.setCenter(Mylocation);
-                });
-            
-
-            var elevator = new google.maps.ElevationService;
-
-
-
-            function renderDirections(result) {
-                let directionsRenderer = new google.maps.DirectionsRenderer();
-                directionsRenderer.setMap(map);
-                directionsRenderer.setDirections(result);
-            }
-
-            function requestDirections(start, end) {
-                directionsService.route({
-                    origin: start,
-                    destination: end,
-                    travelMode: google.maps.DirectionsTravelMode.WALKING
-                }, function (result) {
-                    renderDirections(result);
-
-                    let firstStepStep = result.routes[0].legs[0].steps;
-                    console.log(result);
-                    
-
-
-                    let truePath = [];
-
-                    for (let i = 0; i < firstStepStep.length; i++) {
-                        const path = firstStepStep[i].path;
-
-                        path.forEach(loc => {
-                            truePath.push({ lat: loc.lat(), lng: loc.lng() })
-                        });
-
-                    }
-
-
-                    
-
-                    elevator.getElevationAlongPath({
-                        'path': truePath,
-                        'samples': 50
-                    }, (elevations, status) => {
-                        plotElevation(elevations, status);
-                    });
-
-
-                });
-            }
-
-            function plotElevation(elevations, status) {
-                var chartDiv = document.getElementById('elevation_chart');
-                if (status !== 'OK') {
-                    // Show the error code inside the chartDiv.
-                    chartDiv.innerHTML = 'Cannot show elevation: request failed because ' +
-                        status;
-                    return;
-                }
-                // Create a new chart in the elevation_chart DIV.
-                var chart = new google.visualization.ColumnChart(chartDiv);
-
-                // Extract the data from which to populate the chart.
-                // Because the samples are equidistant, the 'Sample'
-                // column here does double duty as distance along the
-                // X axis.
-                var data = new google.visualization.DataTable();
-                data.addColumn('string', 'Sample');
-                data.addColumn('number', 'Elevation');
-                for (var i = 0; i < elevations.length; i++) {
-                    data.addRow(['', elevations[i].elevation]);
-                }
-
-                // Draw the chart using the data within its DIV.
-                chart.draw(data, {
-                    height: 150,
-                    legend: 'none',
-                    titleY: 'Elevation (m)'
-                });
-            }
-
-            //this, given a centre to start from, plots the predicted back and forth range of the rider
-            //effortLvl is a multiplier for the range, given in percentage. 0 means no effort, 100 doubles max range
-            function plotRangeCircleBkFrth(centreLatLng) {
-                let batWattage = document.getElementById("wattage").value;
-                let batVoltage = document.getElementById("voltage").value;
-                let batAmpHr = document.getElementById("amphr").value;
-                let effortLvl = document.getElementById("effortLvl").value;
-                let speedUpHill = document.getElementById("speedUpHill").value;
-                let dateGiven = document.getElementById("date").value;
-                
-                //calc the max run time of the battery in seconds
-                let maxRunTimeSec = (batAmpHr/(batWattage/batVoltage))*60*60;
-
-                let maxUpHillDistMetre = maxRunTimeSec * ((speedUpHill/60/60)*1000);
-                //this converts the distance given in mertes to the equivilent in earth degrees.
-                //apperantly, 111 111 metres is approximetly equall to 1 degree of lattitude, funny
-                let maxUpHillDist = maxUpHillDistMetre/111111;
-
-                let maxDistPoints = [];
-
-                for (let i = 0; i < 50; i++) {
-                    let circlePoint = {
-                        lat: centreLatLng.lat + maxUpHillDist*(effortLvl/100 + 1)*Math.cos(Math.PI/50*i),
-                        lng: centreLatLng.lng + maxUpHillDist*(effortLvl/100 + 1)*Math.sin(Math.PI/50*i)
-                    }
-
-                    maxDistPoints.push(circlePoint);
-                    
-                }
-
-                maxDistPoints.forEach(point => {
-                    let done = false;
-                    while (!done) {
-                        directionsService.route({
-                        origin: centreLatLng,
-                        destination: point,
-                        travelMode: google.maps.DirectionsTravelMode.WALKING
-                    }, (result) => {
-                        let flat
-                    })
-                    }
-                });
-
-
-            }
-
-
-
-
-            //requestDirections("Eiðistorg, Reykjavík", "Frostaskjól 2, 107 Reykjavík");
-
-
-
-
-
-        }
-
-
-    </script>
-
-
-
+    <script src="Script.js"></script>
     <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-tJiD9Q8vx_4uYDVUZdvvDyN5bs7NC3M&callback=initMap">
         </script>
